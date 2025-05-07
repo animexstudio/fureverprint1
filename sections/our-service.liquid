@@ -1,0 +1,45 @@
+<style>
+  .service-section {
+    position: relative;
+    background-image: url('{{ 'service-background-image.png' | asset_url }}');
+    background-size: cover;
+    background-position: center;
+  }
+  .service-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+</style>
+
+<section class="service-section bg-red-100 p-10 md:py-18 md:pl-18 lg:py-24 lg:pl-24 md:pr-0  my-20 rounded-lg flex flex-col md:flex-row items-center justify-between gap-20 overflow-hidden w-full md:w-5/6 mx-auto ">
+  <div class="space-y-4 relative z-10">
+    <h2 class="text-5xl md:text-6xl w-[80%] md:w-[40%] font-bold text-[#2B2B2B] text-center mx-auto  md:ml-0 md:text-left">
+      Get your service from our app
+    </h2>
+    <p class="text-gray-600 text-center md:text-left w-full md:w-[70%]">
+      There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some.
+    </p>
+    <button class="bg-[#F46267] w-full md:w-1/3 justify-center font-medium text-white px-6 py-3 rounded-lg flex items-center space-x-2 hover:[#DC585D] mt-[24px]">
+      <span>Personalize Builder</span>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-5 w-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="flex-1">
+    <div class="w-full rounded-lg">
+      <img src="{{ 'service-image.png' | asset_url }}" alt="" width="100%" height="50%" class="object-cover h-1/2">
+    </div>
+  </div>
+</section>

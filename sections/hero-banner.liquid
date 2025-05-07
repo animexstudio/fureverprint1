@@ -1,0 +1,191 @@
+{% comment %} Shopify Liquid + Tailwind CSS for the 5D Print Technology Section {% endcomment %}
+{% style %}
+  .hero-section h2 {
+    font-family: 'Neco-Variable', sans-serif;
+    font-weight: 700;
+  }
+
+  .card-container {
+    position: relative;
+    width: 800px;
+    height: 200px;
+    margin: 100px auto;
+  }
+
+  .card {
+    position: absolute;
+    top: 50%;
+    left: 28%;
+    width: 150px;
+    height: 220px !important;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    transform: translate(-50%, -50%) translateY(100px) rotate(0deg);
+    opacity: 0;
+    animation: fanSpread 0.5s ease-out forwards;
+    animation-delay: calc(var(--i) * 0.2s);
+    z-index: calc(10 - var(--i));
+  }
+
+  @keyframes fanSpread {
+    to {
+      transform: translate(-50%, -50%) translateX(calc((var(--i) - 2) * 120px)) rotate(calc((var(--i) - 2) * 8deg));
+      opacity: 1;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .card-container {
+      width: 100%;
+      height: 100px;
+    }
+
+    .card {
+      width: 80px;
+      height: 120px !important;
+      left: 35%;
+      /* right: 0%; */
+      transform: translate(-50%, -50%) translateY(50px) rotate(0deg);
+    }
+    @keyframes fanSpread {
+      to {
+        transform: translate(-50%, -50%) translateX(calc((var(--i) - 2) * 40px)) rotate(calc((var(--i) - 2) * 5deg));
+        opacity: 1;
+      }
+    }
+  }
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .card-container {
+      width: 100%;
+      height: 100px;
+    }
+
+    .card {
+      width: 120px;
+      height: 150px !important;
+      left: 40%;
+      /* right: 0%; */
+      transform: translate(-50%, -50%) translateY(50px) rotate(0deg);
+    }
+    @keyframes fanSpread {
+      to {
+        transform: translate(-50%, -50%) translateX(calc((var(--i) - 2) * 60px)) rotate(calc((var(--i) - 2) * 5deg));
+        opacity: 1;
+      }
+    }
+  }
+{% endstyle %}
+<section class="hero-section bg-[#FEEFF0] py-12 rounded-lg lg:h-[82vh] flex flex-col justify-center items-center">
+  <div class="max-w-6xl mx-auto text-center px-4 ">
+    <h2 class="text-6xl font-extrabold text-[#2B2B2B]">
+      {{ section.settings.headline }}
+    </h2>
+    <h2 class="text-6xl font-extrabold text-[#2B2B2B] mt-2">{{ section.settings.subheadline }}</h2>
+  </div>
+
+  <div class="card-container">
+    <img width="" height="" src="{{ 'img-1.png' | asset_url }}" class="card" style="--i:0;">
+    <img width="" height="" src="{{ 'img-2.png' | asset_url }}" class="card" style="--i:1;">
+    <img width="" height="" src="{{ 'img-3.png' | asset_url }}" class="card" style="--i:2;">
+    <img width="" height="" src="{{ 'img-4.png' | asset_url }}" class="card" style="--i:3;">
+    <img width="" height="" src="{{ 'img-5.png' | asset_url }}" class="card" style="--i:4;">
+    <img width="" height="" src="{{ 'img-6.png' | asset_url }}" class="card" style="--i:5;">
+    <img width="" height="" src="{{ 'img-7.png' | asset_url }}" class="card" style="--i:6;">
+    <img width="" height="" src="{{ 'img-8.png' | asset_url }}" class="card" style="--i:7;">
+  </div>
+
+  {% comment %}
+    <div class=" flex justify-center items-center mt-8">
+      <div class="flex space-x-4 overflow-hidden scrollbar-hide">
+        <img
+          src="{{ 'hero-img.png' | asset_url }}"
+          alt="5D Print"
+          class="hidden md:block w-full h-full object-cover"
+          width="100"
+          height="100"
+        >
+        <img
+          src="{{ 'hero-img-mobile.png' | asset_url }}"
+          alt="5D Print"
+          class="md:hidden w-full h-full object-cover"
+          width="100"
+          height="100"
+        >
+      </div>
+    </div>
+  {% endcomment %}
+
+  <p class="text-center text-[#2B2B2B] max-w-2xl md:max-w-4xl lg:max-w-7xl mx-auto px-[60px] md:px-10 leading-normal ">
+    The revolutionary potential of 5D printing, transforming design and production with multi-dimensional capabilities
+    for a new era of innovation.
+  </p>
+
+  <div class="flex flex-col md:flex-row justify-center items-center w-full md:max-w-3xl mx-auto gap-4 mt-6 px-10 ">
+    <a
+      href="{{ section.settings.primary_button_link }}"
+      class="bg-[#F46267] text-white px-6 py-3 rounded-lg shadow-md hover:bg-[#F46267] transition flex-1 w-full text-center font-semibold"
+    >
+      {{- section.settings.primary_button_text -}}
+      →</a
+    >
+    <a
+      href="{{ section.settings.secondary_button_link }}"
+      class="border border-[#FCCED0] text-gray-900 px-6 py-2 rounded-lg shadow-md hover:bg-gray-200 transition w-full flex-1 text-center font-semibold"
+    >
+      {{- section.settings.secondary_button_text -}}
+    </a>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Hero Banner",
+  "settings": [
+    {
+      "type": "text",
+      "id": "headline",
+      "label": "Headline",
+      "default": "Revolutionizing Print Technology"
+    },
+    {
+      "type": "text",
+      "id": "subheadline",
+      "label": "Subheadline",
+      "default": "Embracing the Power of 5D"
+    },
+    {
+      "type": "image_picker",
+      "id": "hero_image",
+      "label": "Hero Image"
+    },
+    {
+      "type": "url",
+      "id": "primary_button_link",
+      "label": "Primary Button Link"
+    },
+    {
+      "type": "text",
+      "id": "primary_button_text",
+      "label": "Primary Button Text",
+      "default": "Personalize Now"
+    },
+    {
+      "type": "url",
+      "id": "secondary_button_link",
+      "label": "Secondary Button Link"
+    },
+    {
+      "type": "text",
+      "id": "secondary_button_text",
+      "label": "Secondary Button Text",
+      "default": "View Product"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Hero Banner"
+    }
+  ]
+}
+{% endschema %}

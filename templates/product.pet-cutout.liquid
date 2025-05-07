@@ -1,0 +1,295 @@
+{% layout 'theme' %}
+
+<div class="page-width">
+  <div class="grid product-single">
+    <!-- Left Column: Product Images -->
+    <div class="grid__item medium-up--one-half">
+      <div class="product-single__photos">
+        <!-- Product Gallery - uses same structure as main theme -->
+        <div class="product-single__media-wrapper">
+          {%- for media in product.media -%}
+            <div class="product-single__media{% if forloop.first %} active{% endif %}" data-media-id="{{ media.id }}">
+              <img src="{{ media | img_url: '720x720', crop: 'center' }}" 
+                   alt="{{ media.alt | escape }}" 
+                   class="product-featured-media">
+            </div>
+          {%- endfor -%}
+        </div>
+        
+        <!-- Product Thumbnails -->
+        <div class="product-thumbnails">
+          {%- for media in product.media -%}
+            <div class="product-thumbnail{% if forloop.first %} active{% endif %}" data-media-id="{{ media.id }}">
+              <img src="{{ media | img_url: '100x100', crop: 'center' }}" 
+                   alt="{{ media.alt | escape }}">
+            </div>
+          {%- endfor -%}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Product Info and Options -->
+    <div class="grid__item medium-up--one-half">
+      <div class="product-single__meta">
+        <!-- Product Title -->
+        <h1 class="product-single__title">{{ product.title }}</h1>
+        
+        <!-- Product Vendor -->
+        <div class="product-single__vendor">{{ product.vendor }}</div>
+        
+        <!-- Product Price -->
+        <div class="product-single__price-container">
+          <span class="product-single__price" id="currentPrice">{{ current_variant.price | money }}</span>
+        </div>
+        
+        <!-- Product Description -->
+        <div class="product-single__description rte">
+          {{ product.description | split: '---OPTIONS---' | first }}
+        </div>
+        
+        <!-- Product Form -->
+        <div class="product-single__form">
+          <!-- Size Selection -->
+          <div class="form-field size-selection">
+            <label for="sizeSelector" class="form-label">Choose your size</label>
+            <div class="size-selector">
+              <select id="sizeSelector" class="form-select">
+                {% for variant in product.variants %}
+                  <option 
+                    value="{{ variant.id }}" 
+                    data-price="{{ variant.price | money_without_currency }}"
+                    data-width="{{ variant.metafields.custom.width | default: '0' }}"
+                    data-height="{{ variant.metafields.custom.height | default: '0' }}"
+                  >
+                    {{ variant.title }} - {{ variant.price | money }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="size-dimensions">
+              <span id="selectedDimensions"></span>
+            </div>
+          </div>
+          
+          <!-- Upload Photo Button -->
+          <div class="form-field upload-photo">
+            <label class="form-label">Upload Your Pet Photo</label>
+            <div class="upload-photo-btn" id="uploadPhotoBtn">
+              <div class="upload-photo-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              </div>
+              <div class="upload-photo-text">
+                <span>Upload or Drag & Drop Image</span>
+                <small>For best results, use a clear photo with good lighting</small>
+              </div>
+            </div>
+            
+            <!-- Preview Thumbnail (shows after photo is processed) -->
+            <div class="photo-preview-container hidden" id="photoPreviewContainer">
+              <div class="photo-preview" id="photoPreview"></div>
+              <button type="button" class="photo-edit-btn" id="photoEditBtn">Edit</button>
+            </div>
+          </div>
+          
+          <!-- Add-ons Carousel - Dynamically populated from product metafields -->
+          <div class="form-field addons-section">
+            <label class="form-label">Add-ons (Optional)</label>
+            <div id="addonsContainer" class="addons-carousel">
+              <!-- Add-ons will be dynamically loaded here based on product metafields -->
+            </div>
+          </div>
+          
+          <!-- Add to Cart Button -->
+          <div class="form-actions">
+            <button type="button" id="addToCartBtn" class="btn primary-btn add-to-cart-btn" disabled>
+              <span class="btn-text">Add to Cart</span>
+              <span class="btn-loading hidden">
+                <svg class="spinner" viewBox="0 0 50 50">
+                  <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+                </svg>
+                Adding...
+              </span>
+            </button>
+          </div>
+          
+          <!-- Error messages -->
+          <div id="errorContainer" class="error-container hidden">
+            <p id="errorMessage"></p>
+          </div>
+        </div>
+        
+        <!-- Product Features -->
+        <div class="product-features">
+          <div class="feature-item">
+            <div class="feature-icon">📸</div>
+            <div class="feature-text">Custom pet photo cutout on premium acrylic</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">🧼</div>
+            <div class="feature-text">Glossy, high-resolution acrylic finish</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">💪</div>
+            <div class="feature-text">Fade-resistant, scratch-resistant, and waterproof</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">🇺🇸</div>
+            <div class="feature-text">Proudly made in the USA</div>
+          </div>
+        </div>
+        
+        <!-- Product Description - Second Part -->
+        <div class="product-description-footer rte">
+          {% assign description_parts = product.description | split: '---OPTIONS---' %}
+          {% if description_parts.size > 1 %}
+            {{ description_parts[1] }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Product Tabs Section -->
+  <div class="product-tabs">
+    <div class="tabs-nav">
+      <button class="tab-link active" data-tab="description">Description</button>
+      <button class="tab-link" data-tab="reviews">Reviews</button>
+      <button class="tab-link" data-tab="shipping">Shipping & Returns</button>
+    </div>
+    
+    <div class="tab-content">
+      <div id="description" class="tab-pane active">
+        {{ product.description }}
+      </div>
+      
+      <div id="reviews" class="tab-pane">
+        <div class="product-reviews">
+          <!-- Reviews content -->
+          {{ product.metafields.reviews }}
+        </div>
+      </div>
+      
+      <div id="shipping" class="tab-pane">
+        <div class="shipping-content">
+          <p>We offer free worldwide shipping on all orders. Returns are accepted within 30 days of delivery.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Photo Editor Modal -->
+<div id="photoEditorModal" class="modal">
+  <div class="modal-content">
+    <span class="modal-close">&times;</span>
+    <div class="modal-header">
+      <h2>Edit Your Pet Photo</h2>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Upload Area (initial view) -->
+      <div id="modalUploadArea" class="modal-upload-area">
+        <div class="upload-placeholder">
+          <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <h3>Upload Your Pet Photo</h3>
+          <p>Click to browse or drag & drop</p>
+          <input type="file" id="petPhotoUpload" accept="image/*" class="hidden-upload">
+        </div>
+      </div>
+      
+      <!-- Cropping Area (after upload) -->
+      <div id="cropperContainer" class="cropper-container hidden">
+        <!-- The uploaded image will be placed here for cropping -->
+      </div>
+      
+      <!-- Crop Tools (after upload) -->
+      <div id="cropTools" class="crop-tools hidden">
+        <div class="crop-shape-tools">
+          <button type="button" class="crop-tool active" data-shape="rectangle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+            Rectangle
+          </button>
+          <button type="button" class="crop-tool" data-shape="square">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="0" ry="0"></rect></svg>
+            Square
+          </button>
+          <button type="button" class="crop-tool" data-shape="circle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg>
+            Circle
+          </button>
+        </div>
+        
+        <div class="zoom-tools">
+          <button type="button" id="zoomOut" class="zoom-tool">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+            Zoom Out
+          </button>
+          <button type="button" id="zoomIn" class="zoom-tool">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+            Zoom In
+          </button>
+          <button type="button" id="resetCrop" class="zoom-tool">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"></path><path d="M21 12A9 9 0 0 0 6 5.3L3 8"></path><path d="M21 22v-6h-6"></path><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"></path></svg>
+            Reset
+          </button>
+        </div>
+        
+        <div class="undo-redo-tools">
+          <button type="button" id="undoEdit" class="edit-tool" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+            Undo
+          </button>
+          <button type="button" id="redoEdit" class="edit-tool" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path></svg>
+            Redo
+          </button>
+        </div>
+      </div>
+      
+      <!-- Preview Area (after generating proof) -->
+      <div id="proofPreviewArea" class="proof-preview-area hidden">
+        <div id="proofContainer" class="proof-container">
+          <!-- Final proof will be shown here -->
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <div class="modal-upload-footer" id="uploadFooter">
+        <button type="button" class="btn secondary-btn" id="cancelBtn">Cancel</button>
+      </div>
+      
+      <div class="modal-crop-footer hidden" id="cropFooter">
+        <button type="button" class="btn secondary-btn" id="backToUploadBtn">Back</button>
+        <button type="button" class="btn primary-btn" id="generateProofBtn">
+          <span class="btn-text">Generate Preview</span>
+          <span class="btn-loading hidden">
+            <svg class="spinner" viewBox="0 0 50 50">
+              <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+            </svg>
+            Processing...
+          </span>
+        </button>
+      </div>
+      
+      <div class="modal-preview-footer hidden" id="previewFooter">
+        <button type="button" class="btn secondary-btn" id="editProofBtn">Edit Photo</button>
+        <button type="button" class="btn primary-btn" id="approveProofBtn">I Love It, Let's Continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden form fields for cart submission -->
+<form id="petCutoutForm" class="hidden">
+  <input type="hidden" name="id" value="{{ current_variant.id }}" id="variantId">
+  <input type="hidden" name="quantity" value="1">
+  <input type="hidden" name="properties[Original Image]" id="originalImageUrl">
+  <input type="hidden" name="properties[Proof Image]" id="proofImageUrl">
+  <input type="hidden" name="properties[Dimensions]" id="dimensionsProp">
+  <input type="hidden" name="properties[Add-ons]" id="addonsProp">
+</form>
+
+<!-- Include styles and scripts -->
+{% render 'pet-cutout-styles' %}
+{% render 'pet-cutout-scripts' %}

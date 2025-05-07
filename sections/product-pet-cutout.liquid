@@ -1,0 +1,286 @@
+{%- assign current_variant = product.selected_or_first_available_variant -%}
+{%- assign featured_image = current_variant.featured_image | default: product.featured_image -%}
+
+<div class="page-width">
+  <div class="grid product-single{% if section.settings.enable_payment_button %} product-single--enable-payment-button{% endif %}">
+    <div class="grid__item medium-up--one-half">
+      <div class="product-image-container">
+        <!-- Product Gallery Images (keep your existing gallery for non-customized views) -->
+        <div class="product-single__media-wrapper" data-product-single-media-wrapper>
+          {%- for media in product.media -%}
+            <div class="product-single__media product-media-{{ media.id }}" 
+                 data-media-id="{{ section.id }}-{{ media.id }}"
+                 data-product-single-media-wrapper
+                 data-product-featured-media>
+              <img src="{{ media | img_url: '720x720', crop: 'center' }}" 
+                   alt="{{ media.alt | escape }}" 
+                   class="product-featured-media" 
+                   data-product-featured-media>
+            </div>
+          {%- endfor -%}
+        </div>
+
+        <!-- Pet Photo Upload Container -->
+        <div class="pet-cutout-upload-container" id="petCutoutUploadContainer">
+          <h3 class="pet-upload-heading">Upload Your Pet Photo</h3>
+          
+          <div class="upload-area" id="uploadArea">
+            <input type="file" id="petPhotoUpload" accept="image/*" class="hidden-upload">
+            <div class="upload-placeholder" id="uploadPlaceholder">
+              <div class="upload-icon">📷</div>
+              <p>Click to upload your pet photo<br>or drag and drop</p>
+              <p class="upload-requirements">For best results, use a high-resolution photo with clear lighting</p>
+            </div>
+            
+            <!-- Preview will appear here after upload -->
+            <div id="previewContainer" class="preview-container hidden">
+              <div id="cropContainer" class="crop-container">
+                <!-- The uploaded image will be placed here for cropping -->
+              </div>
+              <div class="preview-controls">
+                <button type="button" id="zoomIn" class="preview-btn">
+                  <span class="btn-icon">+</span> Zoom In
+                </button>
+                <button type="button" id="zoomOut" class="preview-btn">
+                  <span class="btn-icon">-</span> Zoom Out
+                </button>
+                <button type="button" id="resetCrop" class="preview-btn">
+                  <span class="btn-icon">↺</span> Reset
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="pet-type-selector">
+            <h4>Select Cutout Type</h4>
+            <div class="cutout-options">
+              <label class="cutout-option">
+                <input type="radio" name="cutoutType" value="full-body" checked>
+                <div class="option-content">
+                  <div class="option-icon">🐕</div>
+                  <div class="option-text">
+                    <span class="option-label">Full Body</span>
+                    <span class="option-description">Entire pet will be cutout</span>
+                  </div>
+                </div>
+              </label>
+              <label class="cutout-option">
+                <input type="radio" name="cutoutType" value="face-only">
+                <div class="option-content">
+                  <div class="option-icon">🐱</div>
+                  <div class="option-text">
+                    <span class="option-label">Face Print</span>
+                    <span class="option-description">Just your pet's face</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Final Proof Preview -->
+        <div class="final-proof hidden" id="finalProof">
+          <h4>Your Pet Cutout Preview</h4>
+          <div class="proof-container" id="proofContainer">
+            <!-- Final proof will be shown here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid__item medium-up--one-half">
+      <div class="product-single__meta">
+        <!-- Product Title -->
+        <h1 class="product-single__title">{{ product.title }}</h1>
+        
+        <!-- Product Price -->
+        <div class="product-single__price-container">
+          <span class="visually-hidden">{{ 'products.general.regular_price' | t }}</span>
+          <span class="product-single__price" id="currentPrice">
+            {{ current_variant.price | money }}
+          </span>
+        </div>
+        
+        <!-- Product Description - First Part (before options) -->
+        <div class="product-single__description rte">
+          {{ product.description | split: '---OPTIONS---' | first }}
+        </div>
+        
+        <div class="product-form__controls-group">
+          <div class="selector-wrapper js product-form__item">
+            <h4 class="option-heading">Choose your size</h4>
+            <div class="size-selector">
+              <select id="sizeSelector" class="single-option-selector size-dropdown">
+                {% for variant in product.variants %}
+                  <option 
+                    value="{{ variant.id }}" 
+                    data-price="{{ variant.price | money_without_currency }}"
+                    data-width="{{ variant.metafields.custom.width | default: '0' }}"
+                    data-height="{{ variant.metafields.custom.height | default: '0' }}"
+                  >
+                    {{ variant.title }} - {{ variant.price | money }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="size-dimensions">
+              <span id="selectedDimensions"></span>
+            </div>
+          </div>
+          
+          <!-- Add-ons Section -->
+          <div class="addons-section">
+            <h4 class="option-heading">Add-ons (Optional)</h4>
+            <div class="addon-options">
+              <label class="addon-option">
+                <input type="checkbox" name="addons" value="adhesive-stand" data-price="9.99">
+                <div class="addon-content">
+                  <span class="addon-label">Adhesive Stand</span>
+                  <span class="addon-price">(+$9.99)</span>
+                </div>
+              </label>
+              <label class="addon-option">
+                <input type="checkbox" name="addons" value="drilled-holes" data-price="4.99">
+                <div class="addon-content">
+                  <span class="addon-label">Pre-drilled Hanging Holes</span>
+                  <span class="addon-price">(+$4.99)</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Generate Proof & Add to Cart Buttons -->
+        <div class="product-form__controls-group product-form__buttons">
+          <button 
+            type="button" 
+            id="generateProofBtn" 
+            class="btn btn--primary generate-proof-btn"
+            disabled
+          >
+            Generate Preview
+          </button>
+          
+          <button 
+            type="button" 
+            id="addToCartBtn" 
+            class="btn btn--primary add-to-cart-btn hidden" 
+            disabled
+          >
+            Add to Cart
+          </button>
+        </div>
+        
+        <!-- Error messages -->
+        <div id="errorContainer" class="error-container hidden">
+          <p id="errorMessage"></p>
+        </div>
+        
+        <!-- Product Description - Second Part (after options) -->
+        <div class="product-single__description rte">
+          {% assign description_parts = product.description | split: '---OPTIONS---' %}
+          {% if description_parts.size > 1 %}
+            {{ description_parts[1] }}
+          {% endif %}
+        </div>
+        
+        <!-- Features List -->
+        <div class="features-list">
+          {% for feature in section.blocks %}
+            {% if feature.type == 'feature' %}
+              <div class="feature-item">
+                <div class="feature-icon">{{ feature.settings.icon }}</div>
+                <div class="feature-text">{{ feature.settings.text }}</div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden form fields for cart submission -->
+<form id="petCutoutForm" class="hidden">
+  <input type="hidden" name="id" value="{{ current_variant.id }}" id="variantId">
+  <input type="hidden" name="quantity" value="1">
+  <input type="hidden" name="properties[Original Image]" id="originalImageUrl">
+  <input type="hidden" name="properties[Proof Image]" id="proofImageUrl">
+  <input type="hidden" name="properties[Cutout Type]" id="cutoutType">
+  <input type="hidden" name="properties[Dimensions]" id="dimensionsProp">
+  <input type="hidden" name="properties[Add-ons]" id="addonsProp">
+</form>
+
+{% schema %}
+{
+  "name": "Pet Cutout Product",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enable_payment_button",
+      "label": "Show dynamic checkout button",
+      "default": true,
+      "info": "Each customer will see their preferred payment method from those available on your store, such as PayPal or Apple Pay. [Learn more](https://help.shopify.com/manual/using-themes/change-the-layout/dynamic-checkout)"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "feature",
+      "name": "Feature",
+      "settings": [
+        {
+          "type": "text",
+          "id": "icon",
+          "label": "Icon",
+          "default": "📸"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Feature text",
+          "default": "Custom photo cutout"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Pet Cutout Product",
+      "blocks": [
+        {
+          "type": "feature",
+          "settings": {
+            "icon": "📸",
+            "text": "Custom pet photo cutout"
+          }
+        },
+        {
+          "type": "feature",
+          "settings": {
+            "icon": "🧼",
+            "text": "Glossy, high-resolution acrylic finish"
+          }
+        },
+        {
+          "type": "feature",
+          "settings": {
+            "icon": "💪",
+            "text": "Fade-resistant, scratch-resistant, and waterproof"
+          }
+        },
+        {
+          "type": "feature",
+          "settings": {
+            "icon": "🇺🇸",
+            "text": "Proudly made in the USA"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+<!-- Include styles and scripts -->
+{% render 'pet-cutout-styles' %}
+{% render 'pet-cutout-scripts' %}

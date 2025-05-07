@@ -1,0 +1,139 @@
+{% schema %}
+{
+  "name": "Gallery Carousel",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Gallery Settings"
+    },
+    {
+      "type": "text",
+      "id": "gallery_title",
+      "label": "Gallery Title",
+      "default": "Gallery"
+    },
+    {
+      "type": "image_picker",
+      "id": "gallery_image_1",
+      "label": "Gallery Image 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "gallery_image_2",
+      "label": "Gallery Image 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "gallery_image_3",
+      "label": "Gallery Image 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "gallery_image_4",
+      "label": "Gallery Image 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "gallery_image_5",
+      "label": "Gallery Image 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "gallery_image_6",
+      "label": "Gallery Image 6"
+    },
+    {
+      "type": "image_picker",
+      "id": "gallery_image_7",
+      "label": "Gallery Image 7"
+    },
+    {
+      "type": "image_picker",
+      "id": "gallery_image_8",
+      "label": "Gallery Image 8"
+    },
+    {
+      "type": "image_picker",
+      "id": "gallery_image_9",
+      "label": "Gallery Image 9"
+    },
+    {
+      "type": "image_picker",
+      "id": "gallery_image_10",
+      "label": "Gallery Image 10"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Gallery Carousel",
+      "category": "Image"
+    }
+  ]
+}
+{% endschema %}
+
+<section class="bg-[#FEEFF080] py-12 overflow-hidden">
+  <div class="max-w-6xl mx-auto text-center mb-10">
+    <h2 class="text-5xl md:text-6xl font-bold text-[#2B2B2B] ">{{ section.settings.gallery_title }}</h2>
+  </div>
+
+  <div class="swiper-container w-xs md:w-3xl lg:w-[1000px] xl:w-[1400px] 2xl:w-[1890px] mx-auto">
+    <div class="swiper-wrapper">
+      {% for i in (1..10) %}
+        {% capture image_key %}gallery_image_{{ i }}{% endcapture %}
+        {% assign image = section.settings[image_key] %}
+        {% if image %}
+          <div class="swiper-slide shrink-0">
+            <div class="overflow-hidden rounded-4xl shadow-lg">
+              <img
+                src="{{ image | image_url: width: 400, height: 590 }}"
+                alt="Gallery Image"
+                class="w-full"
+                width="400"
+                height="590"
+              >
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Navigation Arrows -->
+    <div class="swiper-button-next text-pink-500"></div>
+    <div class="swiper-button-prev text-pink-500"></div>
+  </div>
+</section>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var swiper = new Swiper('.swiper-container', {
+      effect: 'coverflow',
+      grabCursor: true,
+      centeredSlides: true,
+      loop: true,
+      spaceBetween: 50, // Default spacing
+      slidesPerView: 'auto',
+      autoplay: {
+        delay: 1500,
+        disableOnInteraction: false,
+      },
+      coverflowEffect: {
+        rotate: 0,
+        stretch: 0,
+        depth: 150,
+        modifier: 1.5,
+        slideShadows: false,
+      },
+      navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev',
+      },
+      breakpoints: {
+        480: { slidesPerView: 2, spaceBetween: 50 },
+        768: { slidesPerView: 2, spaceBetween: 50 },
+        1024: { slidesPerView: 3, spaceBetween: 80 },
+        1536: { slidesPerView: 4, spaceBetween: 100 },
+      },
+    });
+  });
+</script>

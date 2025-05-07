@@ -1,0 +1,122 @@
+{% comment %}
+  Renders a header drawer menu for mobile and desktop.
+
+  Usage:
+  {% render 'header-drawer' %}
+{% endcomment %}
+{%- capture menu_string -%}
+  Modern pet portrait|#|Custom Pet Portraits|/collections/custom-pet-portraits,Framed Pet Prints|/collections/framed-pet-prints;
+  All cat portraits|#|Black Cat Art|/collections/black-cat-art,Watercolor Cat Portraits|/collections/watercolor-cat-portraits;
+  Other products|#|Pet Accessories|/collections/pet-accessories,Pet-Themed Home Decor|/collections/pet-home-decor;
+  Handmade pet replica|/collections/handmade-pet-replica;
+  Reviews|/pages/reviews
+{%- endcapture -%}
+
+{% assign menu_items = menu_string | split: ';' %}
+
+<header-drawer data-breakpoint="{% if section.settings.menu_type_desktop == 'drawer' %}desktop{% else %}tablet{% endif %}">
+  <details id="Details-menu-drawer-container" class="menu-drawer-container">
+    <summary
+      class="header__icon header__icon--menu header__icon--summary link focus-inset"
+      aria-label="{{ 'sections.header.menu' | t }}"
+    >
+      <span>
+        {{- 'icon-hamburger.svg' | inline_asset_content -}}
+        {{- 'icon-close.svg' | inline_asset_content -}}
+      </span>
+    </summary>
+    <div id="menu-drawer" class="gradient menu-drawer motion-reduce color-{{ section.settings.menu_color_scheme }}">
+      <div class="menu-drawer__inner-container">
+        <div class="menu-drawer__navigation-container">
+          <nav class="menu-drawer__navigation">
+            <ul class="menu-drawer__menu has-submenu list-menu" role="list">
+              {%- for item in menu_items -%}
+                {% assign parts = item | strip | split: '|' %}
+                {% assign title = parts[0] %}
+                {% assign url = parts[1] %}
+                {% assign dropdown_raw = parts | slice: 2, parts.size %}
+                {% assign dropdown_items = dropdown_raw | join: '|' | split: ',' %}
+
+                <li>
+                  {%- if dropdown_items[0] != blank -%}
+                    <details id="Details-menu-drawer-menu-item-{{ forloop.index }}">
+                      <summary
+                        class="menu-drawer__menu-item list-menu__item link link--text focus-inset"
+                      >
+                        {{ title | escape }}
+                        <span class="svg-wrapper">
+                          {{- 'icon-arrow.svg' | inline_asset_content -}}
+                        </span>
+                        <span class="svg-wrapper">
+                          {{- 'icon-caret.svg' | inline_asset_content -}}
+                        </span>
+                      </summary>
+                      <div
+                        class="menu-drawer__submenu has-submenu gradient motion-reduce"
+                      >
+                        <ul class="menu-drawer__menu list-menu" role="list" tabindex="-1">
+                          {%- for dropdown in dropdown_items -%}
+                            {% assign drop_parts = dropdown | split: '|' %}
+                            {% assign drop_title = drop_parts[0] %}
+                            {% assign drop_url = drop_parts[1] %}
+                            <li>
+                              <a
+                                href="{{ drop_url }}"
+                                class="menu-drawer__menu-item link link--text list-menu__item focus-inset"
+                              >
+                                {{ drop_title | escape }}
+                              </a>
+                            </li>
+                          {%- endfor -%}
+                        </ul>
+                      </div>
+                    </details>
+                  {%- else -%}
+                    <a
+                      href="{{ url }}"
+                      class="menu-drawer__menu-item list-menu__item link link--text focus-inset"
+                    >
+                      {{ title | escape }}
+                    </a>
+                  {%- endif -%}
+                </li>
+              {%- endfor -%}
+            </ul>
+          </nav>
+          <div class="menu-drawer__utility-links">
+            {%- if shop.customer_accounts_enabled -%}
+              <a
+                href="{%- if customer -%}{{ routes.account_url }}{%- else -%}{{ routes.account_login_url }}{%- endif -%}"
+                class="menu-drawer__account link focus-inset h5 medium-hide large-up-hide"
+                rel="nofollow"
+              >
+                {%- if section.settings.enable_customer_avatar -%}
+                  <account-icon>
+                    {%- if customer and customer.has_avatar? -%}
+                      {{ customer | avatar }}
+                    {%- else -%}
+                      <span class="svg-wrapper">
+                        {{- 'icon-account.svg' | inline_asset_content -}}
+                      </span>
+                    {%- endif -%}
+                  </account-icon>
+                {%- else -%}
+                  <span class="svg-wrapper">
+                    {{- 'icon-account.svg' | inline_asset_content -}}
+                  </span>
+                {%- endif -%}
+                {%- liquid
+                  if customer
+                    echo 'customer.account_fallback' | t
+                  else
+                    echo 'customer.log_in' | t
+                  endif
+                -%}
+              </a>
+            {%- endif -%}
+          </div>
+        </div>
+      </div>
+    </div>
+  </details>
+</header-drawer>

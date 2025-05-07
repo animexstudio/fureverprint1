@@ -1,0 +1,59 @@
+{% comment %}
+  Renders a standard dropdown style menu for the header.
+
+  Usage:
+  {% render 'header-dropdown-menu' %}
+{% endcomment %}
+{%- capture menu_string -%}
+  Modern pet portrait|#|Custom Pet Portraits|/collections/custom-pet-portraits,Framed Pet Prints|/collections/framed-pet-prints;
+  All cat portraits|#|Black Cat Art|/collections/black-cat-art,Watercolor Cat Portraits|/collections/watercolor-cat-portraits;
+  Other products|#|Pet Accessories|/collections/pet-accessories,Pet-Themed Home Decor|/collections/pet-home-decor;
+  Handmade pet replica|/collections/handmade-pet-replica;
+  Reviews|/pages/reviews
+{%- endcapture -%}
+
+{% assign menu_items = menu_string | split: ';' %}
+
+<nav class="container mx-auto hidden lg:block">
+  <ul class="list-menu list-menu--inline" role="list">
+    {%- for item in menu_items -%}
+      {% assign parts = item | strip | split: '|' %}
+      {% assign title = parts[0] %}
+      {% assign url = parts[1] %}
+      {% assign dropdown_raw = parts | slice: 2, parts.size %}
+      {% assign dropdown_items = dropdown_raw | join: '|' | split: ',' %}
+
+      <li class="menu-item">
+        {%- if dropdown_items[0] != blank -%}
+          <header-menu>
+            <details id="Details-HeaderMenu-{{ forloop.index }}">
+              <summary class="header__menu-item list-menu__item link focus-inset">
+                <span>{{ title | escape }}</span>
+                {{ 'icon-caret.svg' | inline_asset_content }}
+              </summary>
+              <ul
+                class="header__submenu list-menu list-menu--disclosure caption- bg-white"
+                style="background-color: white;"
+              >
+                {%- for dropdown in dropdown_items -%}
+                  {% assign drop_parts = dropdown | split: '|' %}
+                  {% assign drop_title = drop_parts[0] %}
+                  {% assign drop_url = drop_parts[1] %}
+                  <li>
+                    <a href="{{ drop_url }}" class="header__menu-item list-menu__item link">
+                      {{ drop_title | escape }}
+                    </a>
+                  </li>
+                {%- endfor -%}
+              </ul>
+            </details>
+          </header-menu>
+        {%- else -%}
+          <a href="{{ url }}" class="header__menu-item list-menu__item link">
+            <span>{{ title | escape }}</span>
+          </a>
+        {%- endif -%}
+      </li>
+    {%- endfor -%}
+  </ul>
+</nav>

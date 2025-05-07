@@ -1,0 +1,922 @@
+{% comment %}
+  Snippet: pet-cutout-scripts.liquid
+  Description: JavaScript functionality for pet cutout builder with modal editor
+{% endcomment %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // DOM elements - Main product page
+    const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
+    const photoPreviewContainer = document.getElementById('photoPreviewContainer');
+    const photoPreview = document.getElementById('photoPreview');
+    const photoEditBtn = document.getElementById('photoEditBtn');
+    const addToCartBtn = document.getElementById('addToCartBtn');
+    const sizeSelector = document.getElementById('sizeSelector');
+    const selectedDimensions = document.getElementById('selectedDimensions');
+    const addonsContainer = document.getElementById('addonsContainer');
+    const errorContainer = document.getElementById('errorContainer');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    // DOM elements - Product tabs
+    const tabLinks = document.querySelectorAll('.tab-link');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    
+    // DOM elements - Modal
+    const photoEditorModal = document.getElementById('photoEditorModal');
+    const modalClose = document.querySelector('.modal-close');
+    const modalUploadArea = document.getElementById('modalUploadArea');
+    const petPhotoUpload = document.getElementById('petPhotoUpload');
+    const cropperContainer = document.getElementById('cropperContainer');
+    const cropTools = document.getElementById('cropTools');
+    const proofPreviewArea = document.getElementById('proofPreviewArea');
+    const proofContainer = document.getElementById('proofContainer');
+    
+    // DOM elements - Modal buttons
+    const cropShapeButtons = document.querySelectorAll('.crop-tool');
+    const zoomInBtn = document.getElementById('zoomIn');
+    const zoomOutBtn = document.getElementById('zoomOut');
+    const resetCropBtn = document.getElementById('resetCrop');
+    const undoEditBtn = document.getElementById('undoEdit');
+    const redoEditBtn = document.getElementById('redoEdit');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const backToUploadBtn = document.getElementById('backToUploadBtn');
+    const generateProofBtn = document.getElementById('generateProofBtn');
+    const editProofBtn = document.getElementById('editProofBtn');
+    const approveProofBtn = document.getElementById('approveProofBtn');
+    
+    // DOM elements - Modal footers
+    const uploadFooter = document.getElementById('uploadFooter');
+    const cropFooter = document.getElementById('cropFooter');
+    const previewFooter = document.getElementById('previewFooter');
+    
+    // DOM elements - Generate proof button text and loading
+    const generateBtnText = document.querySelector('#generateProofBtn .btn-text');
+    const generateBtnLoading = document.querySelector('#generateProofBtn .btn-loading');
+    
+    // DOM elements - Add to cart button text and loading
+    const addToCartBtnText = document.querySelector('#addToCartBtn .btn-text');
+    const addToCartBtnLoading = document.querySelector('#addToCartBtn .btn-loading');
+    
+    // Form elements for cart submission
+    const petCutoutForm = document.getElementById('petCutoutForm') || document.createElement('form');
+    const variantIdInput = document.getElementById('variantId');
+    const originalImageUrlInput = document.getElementById('originalImageUrl');
+    const proofImageUrlInput = document.getElementById('proofImageUrl');
+    const dimensionsPropInput = document.getElementById('dimensionsProp');
+    const addonsPropInput = document.getElementById('addonsProp');
+    
+    // State variables
+    let uploadedImage = null;
+    let croppedImage = null;
+    let removedBgImage = null;
+    let cropper = null;
+    let cropperHistory = [];
+    let cropperHistoryIndex = -1;
+    let currentCropShape = 'rectangle'; // Default crop shape
+    let basePrice = 0;
+    let totalPrice = 0;
+    let photoEdited = false;
+    
+    // Initialize the page
+    initializePage();
+    
+    function initializePage() {
+      // Setup size selector
+      setupSizeSelector();
+      
+      // Setup upload button
+      setupUploadButton();
+      
+      // Setup add to cart button
+      setupAddToCartButton();
+      
+      // Setup addon listeners
+      setupAddonListeners();
+      
+      // Setup product tabs
+      setupProductTabs();
+      
+      // Setup modal
+      setupModal();
+    }
+    
+    function setupSizeSelector() {
+      // Initial update
+      updateSizeInfo();
+      
+      // Change event
+      sizeSelector.addEventListener('change', updateSizeInfo);
+    }
+    
+    function updateSizeInfo() {
+      const selectedOption = sizeSelector.options[sizeSelector.selectedIndex];
+      const width = selectedOption.dataset.width;
+      const height = selectedOption.dataset.height;
+      
+      if (width && height) {
+        selectedDimensions.textContent = `Dimensions: ${width}" × ${height}"`;
+      } else {
+        selectedDimensions.textContent = '';
+      }
+      
+      // Update price
+      updateTotalPrice();
+    }
+    
+    function setupUploadButton() {
+      uploadPhotoBtn.addEventListener('click', openPhotoEditorModal);
+      photoEditBtn.addEventListener('click', openPhotoEditorModal);
+    }
+    
+    function setupAddToCartButton() {
+      addToCartBtn.addEventListener('click', addToCart);
+    }
+    
+    function setupAddonListeners() {
+      // Get add-ons from product metafields and render them
+      fetchAddons();
+      
+      // We'll add event listeners after fetching add-ons
+    }
+    
+    function fetchAddons() {
+      // Get product ID from the current page
+      const productId = document.querySelector('meta[property="og:product:id"]')?.content;
+      
+      if (!productId) {
+        console.error('Product ID not found');
+        return;
+      }
+      
+      // Fetch product metafields to get add-ons
+      fetch(`/admin/api/2024-01/products/${productId}/metafields.json`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          // Fallback to public metafields API
+          return fetch(`/api/2024-01/metafields.json?resource=product&owner_resource=product&owner_id=${productId}`);
+        }
+        return response;
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch metafields');
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Find the add-ons metafield (namespace: custom, key: addons)
+        const addonsMetafield = data.metafields?.find(metafield => 
+          metafield.namespace === 'custom' && metafield.key === 'addons'
+        );
+        
+        if (addonsMetafield) {
+          // Parse the add-ons data (format: comma-separated SKUs)
+          const addonSKUs = addonsMetafield.value.split(',').map(sku => sku.trim());
+          
+          if (addonSKUs.length > 0) {
+            // Fetch details for each add-on product
+            fetchAddonDetails(addonSKUs);
+          } else {
+            // No add-ons found, hide the container
+            if (addonsContainer) {
+              addonsContainer.classList.add('hidden');
+            }
+          }
+        } else {
+          // No add-ons metafield, hide the container
+          if (addonsContainer) {
+            addonsContainer.classList.add('hidden');
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching add-ons:', error);
+        // Hide the add-ons container on error
+        if (addonsContainer) {
+          addonsContainer.classList.add('hidden');
+        }
+      });
+    }
+    
+    function fetchAddonDetails(skus) {
+      // Create an array to hold all product fetch promises
+      const fetchPromises = skus.map(sku => {
+        return fetch(`/search/suggest.json?q=${sku}&resources[type]=product`)
+          .then(response => response.json())
+          .then(data => {
+            // Find the product with matching SKU
+            const product = data.resources.results.products.find(p => 
+              p.variants.some(v => v.sku === sku)
+            );
+            
+            if (product) {
+              // Find the specific variant with this SKU
+              const variant = product.variants.find(v => v.sku === sku);
+              
+              return {
+                id: variant ? variant.id : product.variants[0].id,
+                title: product.title,
+                price: variant ? variant.price : product.price,
+                sku: sku,
+                image: product.image || '/no-image.jpg'
+              };
+            }
+            return null;
+          });
+      });
+      
+      // Wait for all fetches to complete
+      Promise.all(fetchPromises)
+        .then(addons => {
+          // Filter out any null results
+          const validAddons = addons.filter(addon => addon !== null);
+          
+          // Render the add-ons
+          renderAddons(validAddons);
+        })
+        .catch(error => {
+          console.error('Error fetching add-on details:', error);
+        });
+    }
+    
+    function renderAddons(addons) {
+      if (!addonsContainer || addons.length === 0) return;
+      
+      // Clear existing add-ons
+      addonsContainer.innerHTML = '';
+      
+      // Create add-ons carousel
+      addons.forEach(addon => {
+        const addonElement = document.createElement('div');
+        addonElement.className = 'addon-item';
+        addonElement.innerHTML = `
+          <div class="addon-image">
+            <img src="${addon.image}" alt="${addon.title}">
+          </div>
+          <div class="addon-info">
+            <span class="addon-name">${addon.title}</span>
+            <span class="addon-price">+${formatMoney(addon.price)}</span>
+            <label class="addon-select">
+              <input type="checkbox" name="addons" value="${addon.id}" 
+                     data-price="${addon.price}" data-sku="${addon.sku}">
+              <span class="checkmark"></span>
+            </label>
+          </div>
+        `;
+        addonsContainer.appendChild(addonElement);
+      });
+      
+      // Add change listeners to the new checkboxes
+      const addonCheckboxes = document.getElementsByName('addons');
+      for (const checkbox of addonCheckboxes) {
+        checkbox.addEventListener('change', updateTotalPrice);
+      }
+      
+      // Show the add-ons section
+      const addonsSection = addonsContainer.closest('.form-field');
+      if (addonsSection) {
+        addonsSection.classList.remove('hidden');
+      }
+      
+      // Update the price
+      updateTotalPrice();
+    }
+    
+    function formatMoney(cents) {
+      return '$' + (cents / 100).toFixed(2);
+    }
+    
+    function updateTotalPrice() {
+      // Get base price from selected size
+      const selectedOption = sizeSelector.options[sizeSelector.selectedIndex];
+      basePrice = parseFloat(selectedOption.dataset.price);
+      
+      // Add prices from selected add-ons
+      let addonsTotal = 0;
+      const addonCheckboxes = document.getElementsByName('addons');
+      for (const checkbox of addonCheckboxes) {
+        if (checkbox.checked) {
+          addonsTotal += parseFloat(checkbox.dataset.price) / 100; // Convert cents to dollars
+        }
+      }
+      
+      // Calculate total price
+      totalPrice = basePrice + addonsTotal;
+      
+      // Update displayed price
+      document.querySelector('.product-single__price').textContent = '$' + totalPrice.toFixed(2);
+    }
+    
+    function setupProductTabs() {
+      tabLinks.forEach(link => {
+        link.addEventListener('click', function() {
+          // Remove active class from all tabs
+          tabLinks.forEach(tab => tab.classList.remove('active'));
+          tabPanes.forEach(pane => pane.classList.remove('active'));
+          
+          // Add active class to clicked tab
+          this.classList.add('active');
+          
+          // Show corresponding tab content
+          const tabId = this.getAttribute('data-tab');
+          document.getElementById(tabId).classList.add('active');
+        });
+      });
+    }
+    
+    // Modal Functions
+    function setupModal() {
+      // Open modal event
+      modalUploadArea.addEventListener('click', function() {
+        petPhotoUpload.click();
+      });
+      
+      // File input change handler
+      petPhotoUpload.addEventListener('change', handleFileUpload);
+      
+      // Close modal events
+      modalClose.addEventListener('click', confirmCloseModal);
+      cancelBtn.addEventListener('click', confirmCloseModal);
+      
+      // Navigation buttons
+      backToUploadBtn.addEventListener('click', showUploadView);
+      
+      // Crop shape buttons
+      cropShapeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          // Remove active class from all buttons
+          cropShapeButtons.forEach(btn => btn.classList.remove('active'));
+          
+          // Add active class to clicked button
+          this.classList.add('active');
+          
+          // Set current crop shape
+          currentCropShape = this.getAttribute('data-shape');
+          
+          // Update cropper if it exists
+          if (cropper) {
+            updateCropperShape(currentCropShape);
+          }
+        });
+      });
+      
+      // Crop controls
+      zoomInBtn.addEventListener('click', function() {
+        if (cropper) cropper.zoom(0.1);
+      });
+      
+      zoomOutBtn.addEventListener('click', function() {
+        if (cropper) cropper.zoom(-0.1);
+      });
+      
+      resetCropBtn.addEventListener('click', function() {
+        if (cropper) cropper.reset();
+      });
+      
+      // History controls
+      undoEditBtn.addEventListener('click', undoEdit);
+      redoEditBtn.addEventListener('click', redoEdit);
+      
+      // Generate proof button
+      generateProofBtn.addEventListener('click', generatePetCutoutProof);
+      
+      // Edit proof button
+      editProofBtn.addEventListener('click', function() {
+        showCropView();
+      });
+      
+      // Approve proof button
+      approveProofBtn.addEventListener('click', function() {
+        closeModal();
+        updatePreviewThumbnail();
+        addToCartBtn.disabled = false;
+      });
+    }
+    
+    function openPhotoEditorModal() {
+      photoEditorModal.classList.add('open');
+      document.body.style.overflow = 'hidden'; // Prevent scrolling
+      
+      if (photoEdited) {
+        // If photo was already edited, show crop view
+        showCropView();
+      } else {
+        // Otherwise show upload view
+        showUploadView();
+      }
+    }
+    
+    function closeModal() {
+      photoEditorModal.classList.remove('open');
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+    
+    function confirmCloseModal() {
+      if (photoEdited) {
+        if (confirm('Are you sure you want to stop editing your photo? Your changes will not be saved.')) {
+          closeModal();
+        }
+      } else {
+        closeModal();
+      }
+    }
+    
+    function showUploadView() {
+      // Show/hide elements
+      modalUploadArea.classList.remove('hidden');
+      cropperContainer.classList.add('hidden');
+      cropTools.classList.add('hidden');
+      proofPreviewArea.classList.add('hidden');
+      
+      // Show/hide footers
+      uploadFooter.classList.remove('hidden');
+      cropFooter.classList.add('hidden');
+      previewFooter.classList.add('hidden');
+      
+      // Reset cropper if it exists
+      if (cropper) {
+        cropper.destroy();
+        cropper = null;
+      }
+    }
+    
+    function showCropView() {
+      // Show/hide elements
+      modalUploadArea.classList.add('hidden');
+      cropperContainer.classList.remove('hidden');
+      cropTools.classList.remove('hidden');
+      proofPreviewArea.classList.add('hidden');
+      
+      // Show/hide footers
+      uploadFooter.classList.add('hidden');
+      cropFooter.classList.remove('hidden');
+      previewFooter.classList.add('hidden');
+      
+      // Reinitialize cropper if needed
+      if (uploadedImage && !cropper) {
+        initializeCropper(uploadedImage);
+      }
+    }
+    
+    function showPreviewView() {
+      // Show/hide elements
+      modalUploadArea.classList.add('hidden');
+      cropperContainer.classList.add('hidden');
+      cropTools.classList.add('hidden');
+      proofPreviewArea.classList.remove('hidden');
+      
+      // Show/hide footers
+      uploadFooter.classList.add('hidden');
+      cropFooter.classList.add('hidden');
+      previewFooter.classList.remove('hidden');
+    }
+    
+    function handleFileUpload() {
+      if (petPhotoUpload.files && petPhotoUpload.files[0]) {
+        const file = petPhotoUpload.files[0];
+        
+        // Check file type
+        if (!file.type.match('image.*')) {
+          showError('Please upload an image file (JPG, PNG, etc.)');
+          return;
+        }
+        
+        // Check file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          showError('Image too large. Please upload an image smaller than 10MB.');
+          return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          // Store original image data
+          uploadedImage = e.target.result;
+          
+          // Show crop view
+          showCropView();
+          
+          // Initialize image cropper
+          initializeCropper(uploadedImage);
+        };
+        
+        reader.readAsDataURL(file);
+      }
+    }
+    
+    function initializeCropper(imageData) {
+      // Create image element
+      const image = document.createElement('img');
+      image.src = imageData;
+      image.id = 'cropperImage';
+      
+      // Clear previous content and add the image
+      cropperContainer.innerHTML = '';
+      cropperContainer.appendChild(image);
+      
+      // If a previous cropper instance exists, destroy it
+      if (cropper) {
+        cropper.destroy();
+      }
+      
+      // Initialize Cropper.js
+      cropper = new Cropper(image, {
+        aspectRatio: currentCropShape === 'square' || currentCropShape === 'circle' ? 1 : NaN,
+        viewMode: 1,
+        dragMode: 'move',
+        autoCropArea: 0.8,
+        restore: false,
+        guides: true,
+        center: true,
+        highlight: false,
+        cropBoxMovable: true,
+        cropBoxResizable: true,
+        toggleDragModeOnDblclick: false,
+        responsive: true,
+        background: false, // Transparent background for the container
+        modal: true, // Black overlay for the original image
+        ready: function() {
+          // Add event for cropper changes
+          this.cropper.crop();
+          
+          // Enable the generate proof button
+          generateProofBtn.disabled = false;
+          
+          // Set photo edited flag
+          photoEdited = true;
+          
+          // Save initial state to history
+          addToHistory();
+        },
+        crop: function(e) {
+          // Rounded corners for circle crop
+          if (currentCropShape === 'circle') {
+            const cropBox = document.querySelector('.cropper-crop-box');
+            if (cropBox) {
+              cropBox.style.borderRadius = '50%';
+            }
+          }
+        }
+      });
+    }
+    
+    function updateCropperShape(shape) {
+      if (!cropper) return;
+      
+      // Set aspect ratio based on shape
+      if (shape === 'square' || shape === 'circle') {
+        cropper.setAspectRatio(1);
+      } else {
+        cropper.setAspectRatio(NaN);
+      }
+      
+      // Apply rounded corners for circle crop
+      const cropBox = document.querySelector('.cropper-crop-box');
+      if (cropBox) {
+        cropBox.style.borderRadius = shape === 'circle' ? '50%' : '0';
+      }
+      
+      // Add to history
+      addToHistory();
+    }
+    
+    // History management
+    function addToHistory() {
+      if (!cropper) return;
+      
+      // Get current cropper data
+      const cropData = cropper.getData();
+      
+      // If we're not at the end of the history, truncate it
+      if (cropperHistoryIndex < cropperHistory.length - 1) {
+        cropperHistory = cropperHistory.slice(0, cropperHistoryIndex + 1);
+      }
+      
+      // Add current state to history
+      cropperHistory.push(cropData);
+      cropperHistoryIndex = cropperHistory.length - 1;
+      
+      // Update buttons
+      updateHistoryButtons();
+    }
+    
+    function undoEdit() {
+      if (cropperHistoryIndex <= 0) return;
+      
+      // Move back in history
+      cropperHistoryIndex--;
+      
+      // Apply previous state
+      const previousState = cropperHistory[cropperHistoryIndex];
+      cropper.setData(previousState);
+      
+      // Update buttons
+      updateHistoryButtons();
+    }
+    
+    function redoEdit() {
+      if (cropperHistoryIndex >= cropperHistory.length - 1) return;
+      
+      // Move forward in history
+      cropperHistoryIndex++;
+      
+      // Apply next state
+      const nextState = cropperHistory[cropperHistoryIndex];
+      cropper.setData(nextState);
+      
+      // Update buttons
+      updateHistoryButtons();
+    }
+    
+    function updateHistoryButtons() {
+      // Enable/disable undo button
+      undoEditBtn.disabled = cropperHistoryIndex <= 0;
+      
+      // Enable/disable redo button
+      redoEditBtn.disabled = cropperHistoryIndex >= cropperHistory.length - 1;
+    }
+    
+    function generatePetCutoutProof() {
+      if (!cropper) {
+        showError('Please upload an image first.');
+        return;
+      }
+      
+      // Show loading state
+      generateBtnText.classList.add('hidden');
+      generateBtnLoading.classList.remove('hidden');
+      generateProofBtn.disabled = true;
+      
+      // Get cropped image data
+      const cropBoxData = cropper.getCropBoxData();
+      const isCircular = currentCropShape === 'circle';
+      
+      // Create a canvas for the cropped image
+      const canvas = cropper.getCroppedCanvas({
+        maxWidth: 2000,
+        maxHeight: 2000,
+        fillColor: 'transparent',
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high',
+      });
+      
+      // If circular crop, apply circular mask
+      if (isCircular) {
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = Math.min(centerX, centerY);
+        
+        // Create circular clipping path
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.fill();
+      }
+      
+      // Get the final cropped image data
+      croppedImage = canvas.toDataURL('image/png');
+      
+      // Remove background using API
+      removeBackground(croppedImage)
+        .then(function(removedBgResult) {
+          // Store the removed background image
+          removedBgImage = removedBgResult;
+          
+          // Show preview
+          displayProof(removedBgResult);
+          
+          // Update UI
+          generateBtnText.textContent = 'Update Preview';
+          generateBtnText.classList.remove('hidden');
+          generateBtnLoading.classList.add('hidden');
+          generateProofBtn.disabled = false;
+          
+          // Show preview view
+          showPreviewView();
+        })
+        .catch(function(error) {
+          showError('Failed to generate preview: ' + error.message);
+          generateBtnText.classList.remove('hidden');
+          generateBtnLoading.classList.add('hidden');
+          generateProofBtn.disabled = false;
+        });
+    }
+    
+    function removeBackground(imageData) {
+      return new Promise(function(resolve, reject) {
+        // For this example, we're simulating an API call to remove the background
+        // In production, you would integrate with one of these services:
+        // 1. Remove.bg API: https://www.remove.bg/api
+        // 2. PhotoRoom API: https://www.photoroom.com/api
+        // 3. Cloudinary Background Removal: https://cloudinary.com/documentation/cloudinary_ai_background_removal_addon
+        
+        // Simulate API call with setTimeout
+        setTimeout(function() {
+          // In a real implementation, you'd make an API call. Here's how it would look with Remove.bg:
+          /*
+          fetch('https://api.remove.bg/v1.0/removebg', {
+            method: 'POST',
+            headers: {
+              'X-Api-Key': 'YOUR_API_KEY',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              image_file_b64: imageData.split(',')[1],
+              size: 'auto',
+              type: 'auto',
+            }),
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Background removal failed');
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (data.errors) {
+              reject(new Error(data.errors[0].title));
+            } else {
+              // Convert result base64 back to data URL
+              resolve('data:image/png;base64,' + data.data.result_b64);
+            }
+          })
+          .catch(error => reject(error));
+          */
+          
+          // For now, we'll just return the cropped image
+          // In production, this would be replaced with actual API implementation
+          resolve(imageData);
+        }, 1500); // Simulate 1.5 second processing time
+      });
+    }
+    
+    function displayProof(imageData) {
+      // Create the preview element
+      const previewImg = document.createElement('img');
+      previewImg.src = imageData;
+      previewImg.alt = 'Your Custom Pet Cutout';
+      
+      // Clear previous preview
+      proofContainer.innerHTML = '';
+      proofContainer.appendChild(previewImg);
+      
+      // In a real implementation, you'd upload this image to your server
+      // and get a permanent URL for the cart
+      
+      // Simulate uploaded image URLs
+      const timestamp = Date.now();
+      originalImageUrlInput.value = `https://cdn.fureverprint.com/uploads/original_${timestamp}.jpg`;
+      proofImageUrlInput.value = `https://cdn.fureverprint.com/uploads/proof_${timestamp}.png`;
+    }
+    
+    function updatePreviewThumbnail() {
+      // Show preview container
+      photoPreviewContainer.classList.remove('hidden');
+      
+      // Create the thumbnail image
+      const thumbnailImg = document.createElement('img');
+      thumbnailImg.src = removedBgImage;
+      thumbnailImg.alt = 'Your Pet Cutout';
+      
+      // Add the image to the preview container
+      photoPreview.innerHTML = '';
+      photoPreview.appendChild(thumbnailImg);
+    }
+    
+    function addToCart() {
+      if (!removedBgImage) {
+        showError('Please upload and edit a photo of your pet first.');
+        return;
+      }
+      
+      // Update form values
+      updateFormValues();
+      
+      // Show loading state
+      addToCartBtnText.classList.add('hidden');
+      addToCartBtnLoading.classList.remove('hidden');
+      addToCartBtn.disabled = true;
+      
+      // Get selected add-ons
+      const selectedAddons = getSelectedAddons();
+      
+      // Add main product to cart first
+      fetch('/cart/add.js', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: new URLSearchParams(new FormData(petCutoutForm))
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        // If there are selected add-ons, add them to cart
+        if (selectedAddons.length > 0) {
+          return addAddonsToCart(selectedAddons);
+        }
+        return true;
+      })
+      .then(() => {
+        // Redirect to cart after adding all items
+        window.location.href = '/cart';
+      })
+      .catch(error => {
+        showError('Failed to add to cart: ' + error.message);
+        addToCartBtnText.classList.remove('hidden');
+        addToCartBtnLoading.classList.add('hidden');
+        addToCartBtn.disabled = false;
+      });
+    }
+    
+    function getSelectedAddons() {
+      const selectedAddons = [];
+      const addonCheckboxes = document.getElementsByName('addons');
+      
+      for (const checkbox of addonCheckboxes) {
+        if (checkbox.checked) {
+          selectedAddons.push({
+            id: checkbox.value,
+            quantity: 1
+          });
+        }
+      }
+      
+      return selectedAddons;
+    }
+    
+    function addAddonsToCart(addons) {
+      // Create items array for the cart/add.js endpoint
+      const items = addons.map(addon => ({
+        id: addon.id,
+        quantity: addon.quantity
+      }));
+      
+      // Add all add-ons in a single request
+      return fetch('/cart/add.js', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ items })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to add add-ons to cart');
+        }
+        return response.json();
+      });
+    }
+    
+    function updateFormValues() {
+      // Set variant ID
+      variantIdInput.value = sizeSelector.value;
+      
+      // Set dimensions
+      const sizeOption = sizeSelector.options[sizeSelector.selectedIndex];
+      const width = sizeOption.dataset.width;
+      const height = sizeOption.dataset.height;
+      dimensionsPropInput.value = `${width}" x ${height}"`;
+      
+      // Set add-ons as a reference list
+      const addonCheckboxes = document.getElementsByName('addons');
+      const selectedAddons = [];
+      for (const checkbox of addonCheckboxes) {
+        if (checkbox.checked) {
+          // Get the addon name from the closest .addon-item element
+          const addonItem = checkbox.closest('.addon-item');
+          const addonName = addonItem ? addonItem.querySelector('.addon-name').textContent : '';
+          const addonSku = checkbox.dataset.sku;
+          
+          selectedAddons.push(`${addonName} (${addonSku})`);
+        }
+      }
+      addonsPropInput.value = selectedAddons.length > 0 ? selectedAddons.join(', ') : 'None';
+    }
+    
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorContainer.classList.remove('hidden');
+      
+      // Hide error after 5 seconds
+      setTimeout(function() {
+        errorContainer.classList.add('hidden');
+      }, 5000);
+    }
+  });
+</script>

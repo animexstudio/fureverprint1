@@ -1,0 +1,21 @@
+{% liquid
+  assign rating_decimal = 0
+  assign decimal = 5 | modulo: 1
+  if decimal >= 0.3 and decimal <= 0.7
+    assign rating_decimal = 0.5
+  elsif decimal > 0.7
+    assign rating_decimal = 1
+  endif
+%}
+<div
+  class="rating flex items-center space-x-1"
+  role="img"
+  aria-label="{{ 'accessibility.star_reviews_info' | t: rating_value: 5, rating_max: 5 }}"
+>
+  <span
+    aria-hidden="true"
+    class="rating-star"
+    style="--rating: {{ 5 | floor }}; --rating-max: {{ 5 }}; --rating-decimal: {{ rating_decimal }};"
+  ></span>
+  <span class="font-medium text-black">(100)</span>
+</div>

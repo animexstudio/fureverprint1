@@ -1,0 +1,50 @@
+{% schema %}
+{
+  "name": "Collection List",
+  "settings": [
+    {
+      "type": "collection",
+      "id": "collection_1",
+      "label": "First Collection"
+    },
+    {
+      "type": "collection",
+      "id": "collection_2",
+      "label": "Second Collection"
+    },
+    {
+      "type": "collection",
+      "id": "collection_3",
+      "label": "Third Collection"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Collection List"
+    }
+  ]
+}
+{% endschema %}
+
+<section class="collections w-5/6 mx-auto">
+  <div class="text-center py-10">
+    <h2 class="text-5xl md:text-6xl font-bold mb-8 text-[#2B2B2B]">Explore Our Collection</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6 ">
+      {% assign collections = 'Portraits,T-shirt,Mugs,Blankets,Posters,Design Your Own,Portraits' | split: ',' %}
+      {% for collection in collections %}
+        <div class="flex flex-col items-center">
+          <div class="bg-[#FEEFF0] rounded-full flex items-center justify-center p-10 w-56 h-56">
+            <img
+              src="{{ collection.image | default: 'collection-default.png' | asset_url }}"
+              alt="{{ collection }}"
+              class="w-full h-full object-contain"
+              width="100%"
+              height="100%"
+            >
+          </div>
+          <p class="mt-2 text-[#2B2B2B] font-medium">{{ collection }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
